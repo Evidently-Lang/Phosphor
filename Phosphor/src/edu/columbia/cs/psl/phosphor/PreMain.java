@@ -15,6 +15,7 @@ import java.security.MessageDigest;
 import java.security.ProtectionDomain;
 import java.util.List;
 
+import org.evidently.agent.EvidentlyClassTransformer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -166,11 +167,17 @@ public class PreMain {
 
 		private byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
 				throws IllegalClassFormatException {
+			
+			
+			
 			ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer) : new ClassReader(classfileBuffer));
 			String className = cr.getClassName();
 			innerException = false;
 //			bigLoader = loader;
 //			Instrumenter.loader = bigLoader;
+			
+			if(cr.getClassName().startsWith("org/evidently/agent")){ return null; }
+			
 			if (Instrumenter.isIgnoredClass(className)) {
 				if(className.equals("java/lang/Boolean"))
 				{
@@ -191,6 +198,12 @@ public class PreMain {
 
 				return classfileBuffer;
 			}			
+			
+			classfileBuffer =  EvidentlyClassTransformer._transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer, classfileBuffer);
+
+			cr = new ClassReader(classfileBuffer);
+			className = cr.getClassName();
+
 
 			Configuration.taintTagFactory.instrumentationStarting(className);
 			try {
@@ -358,7 +371,10 @@ public class PreMain {
 						fos.close();
 						return ret;
 					}
-					return cw.toByteArray();
+					//System.out.println("[Evidently] [Agent] Finished Phosphor transformation. Starting Evidently transformation: " + className);
+					byte[] phosphorTransformed = cw.toByteArray();	
+					return phosphorTransformed;
+//					return EvidentlyClassTransformer._transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer, phosphorTransformed);
 				} catch (Throwable ex) {
 					ex.printStackTrace();
 					cv = new TraceClassVisitor(null, null);
@@ -435,6 +451,10 @@ public class PreMain {
 	}
 
 	public static void premain(String args, Instrumentation inst) {
+		
+		
+	
+		
 		instrumentation = inst;
 		RUNTIME_INST = true;
 		if (args != null) {
@@ -476,6 +496,9 @@ public class PreMain {
 		}
 		if (Instrumenter.loader == null)
 			Instrumenter.loader = bigLoader;
+		
+		
+		
 		ClassFileTransformer transformer = new PCLoggingTransformer();
 		inst.addTransformer(transformer);
 
@@ -484,4 +507,7 @@ public class PreMain {
 	public static Instrumentation getInstrumentation() {
 		return instrumentation;
 	}
+	
+
+	
 }
