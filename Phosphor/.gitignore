@@ -4,3 +4,7 @@
 .classpath
 .settings
 dacapo
+/dependency-reduced-pom.xml
+/lastClass.txt
+/test.tmp.out
+/typescript
