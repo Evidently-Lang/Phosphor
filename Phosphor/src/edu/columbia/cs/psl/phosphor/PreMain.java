@@ -168,13 +168,12 @@ public class PreMain {
 		private byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
 				throws IllegalClassFormatException {
 			
-			
-			
 			ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer) : new ClassReader(classfileBuffer));
 			String className = cr.getClassName();
 			innerException = false;
 //			bigLoader = loader;
 //			Instrumenter.loader = bigLoader;
+			
 			
 			if(cr.getClassName().startsWith("org/evidently/agent")){ return null; }
 			
@@ -199,13 +198,15 @@ public class PreMain {
 				return classfileBuffer;
 			}			
 			
-			classfileBuffer =  EvidentlyClassTransformer._transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer, classfileBuffer);
+			
+			
 
+			Configuration.taintTagFactory.instrumentationStarting(className);
+			classfileBuffer =  EvidentlyClassTransformer._transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer, classfileBuffer);
 			cr = new ClassReader(classfileBuffer);
 			className = cr.getClassName();
 
-
-			Configuration.taintTagFactory.instrumentationStarting(className);
+			
 			try {
 				ClassNode cn = new ClassNode();
 				cr.accept(cn, ClassReader.SKIP_CODE);
